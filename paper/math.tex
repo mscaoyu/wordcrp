@@ -1,0 +1,133 @@
+\documentclass{article}
+
+\begin{document}
+
+Algorithm Input:: \newline
+\begin{itemize}
+ \item a vocabulary of size $V$.
+ \item a corpus of text.
+ \item target vector dimension $D$.
+ \item context window size $2l$
+ \item a guassian distribution for Dirichlet Process $H$.
+\end{itemize}
+
+Algorithm Output::\newline
+\begin{itemize}
+\item Each word a multi-model guassian distriution.
+\end{itemize}
+
+Algorithm process::\newline
+
+\begin{itemize}
+\item Initialization.
+Init each word's context vector $c$, and a mean vector $\mu$ and an isotropic  
+variance matrix $\sigma$.\newline
+\item Iteration.
+Move the context, and by maximizing the ojbects function,update the parameter.\newline
+Suppose the current context center is $w_i$,the whole context window is 
+$w_{i-l},w_{i-l+1},\ldots,w_{i},\ldots,w_{i+l-1},w_{i+l}$ , the corresponding context vector is $c_{i-l},c_{i-l+1},\ldots,c{i},\ldots,c_{i+l-1},c_{i+l}$ . \newline
+Suppose the current context center word $w_i$ has a representation:
+	\begin{equation}
+	 f(w_i) = p_1N(\mu_1,\sigma_1) + p_2N(\mu_2,\sigma_2) + \ldots+ p_kN(\mu_k,\sigma_k)
+	\end{equation}
+Denote $F(\mu_k)$ : the number of times cur word belongs to a specfic model.
+ 
+	\begin{equation}
+	 	p_i = \frac{F(\mu_i)}{\sum_{i=1}^{k}F(\mu_i)}
+	\end{equation}
+
+mean context vector $C_{i}$
+	\begin{equation}
+		C_{i} = \frac{\sum_{k=i-l}^{i-1}{c_k} + \sum_{k = i+1}^{i+l}{c_k}}{2*l}
+	\end{equation}
+mean target vector $T_{i}$
+	\begin{equation}
+		T_{i} = \frac{\sum_{j=1}^{k}{(p_i*\mu_i)}}{k}
+	\end{equation}
+
+Compute the Chinese RestaurantProcess hyperparameter $\alpha$
+	\begin{equation}
+	 	\alpha = \frac{T_{i}*C_{i}}{|T_i|*|C_i|}
+	\end{equation}
+sample from the Chinese Restaurant Process:
+	\begin{equation}
+		\mu \sim DP(\frac{1}{\alpha},H)
+	\end{equation}
+
+Object function
+	\begin{equation}
+		L_\theta(w,c,c') = max(0,m - \log{E_\theta(w,c)} + \log{E_\theta(w,c')}
+	\end{equation}
+\end{itemize}
+$c$ is the positive sample,$c'$ is the negative sample.
+	\begin{equation}
+		E_\theta(w,c) = \int_{-\infty}^{\infty}{f(w)*f(c)}
+	\end{equation}
+
+suppose $f(x) = \sum_{i=1}^{M}p_iN(\mu_i,\sigma_i)$,
+$g(x) = \sum_{j=1}^{N}q_jN(\mu_j,\sigma_j)$.\newline
+then 
+	\begin{equation}
+	\int_{-\infty}^{\infty}{f(x)*g(x)} = 
+	\int_{-\infty}^{\infty}{\sum_{i=1}^{M}\sum_{j=1}^{N}p_i*q_jN(\mu_i,\sigma_i)N(\mu_j,\sigma_j)}
+	\end{equation}
+	\begin{equation}
+	=\sum_{i=1}^{M}\sum_{j=1}^{N}p_i*q_j\int_{-\infty}
+	^{\infty}N(\mu_i,\sigma_i)N(\mu_j,\sigma_j)
+	\end{equation}
+	\begin{equation}
+	=\sum_{i=1}^{M}\sum_{j=1}^{N}p_i*q_jN(0;\mu_i-\mu_j,\sigma_i+\sigma_j)
+	\end{equation}
+suppose $A = \sum_{i=1}^{M}\sum_{j=1}^{N}p_i*q_jN(0;\mu_i-\mu_j,\sigma_i+\sigma_j)$,then
+	\begin{equation}
+	\frac{\partial{\log{E(f,g)}}}{\partial{\theta}} = \frac{1}{A}
+	*\sum_{i=1}^{M}\sum_{j=1}^{N}p_i*q_j * \frac{\partial{N(0;\mu_i-\mu_j,\sigma_i+\sigma_j)}}{\partial{\theta}}
+	\end{equation}
+
+\begin{equation}
+	\frac{\log{\partial{E(f,g)}}}{\partial{\mu_i}} = 
+	\frac{p_i}{A}\sum_{j=1}^{N}q_j*
+	N(0;\mu_i-\mu_j,\sigma_i+\sigma_j)*(-(\sigma_i+\sigma_j)^{-1}(\mu_i - \mu_j))
+\end{equation}
+\begin{equation}
+\frac{\log{\partial{E(f,g)}}}{\partial{\mu_j}} = 
+	\frac{q_j}{A}\sum_{i=1}^{M}p_i*
+	N(0;\mu_i-\mu_j,\sigma_i+\sigma_j)*((\sigma_i+\sigma_j)^{-1}(\mu_i - \mu_j))
+\end{equation}
+\begin{equation}
+	\frac{\log{\partial{E(f,g)}}}{\partial{\sigma_i}} =
+	\frac{1}{2}*\frac{p_i}{A}\sum_{j=1}^{N}q_j*N(0;\mu_i-\mu_j,\sigma_i + \sigma_j)((\sigma_i+\sigma_j)^{-1}*(\mu_i-\mu_j)^{T}*(\mu_i-\mu_j)*(\sigma_i+\sigma_j)^{-1} - (\sigma_i+\sigma_j)^{-1})
+\end{equation}
+\begin{equation}
+	\frac{\log{\partial{E(f,g)}}}{\partial{\sigma_j}}=
+	\frac{1}{2}*\frac{q_j}{A}\sum_{i=1}^{M}p_i*N(0;\mu_i-\mu_j,\sigma_i + \sigma_j)((\sigma_i+\sigma_j)^{-1}*(\mu_i-\mu_j)^{T}*(\mu_i-\mu_j)*(\sigma_i+\sigma_j)^{-1} - (\sigma_i+\sigma_j)^{-1})
+\end{equation}
+*********************************************
+*******************one modal*******************
+suppose $f(x)=N(\mu_1,\sigma_1)$,$g(x)=N(\mu_2,\sigma_2)$
+then 
+\begin{equation}
+	E(f,g) = \int_{-\infty}^{\infty}f(x)*g(x)
+\end{equation}
+\begin{equation}
+		=N(0;\mu_1-\mu_2,\sigma_1+\sigma_2)
+\end{equation}
+\begin{equation}
+\log{E(f,g)}= -\frac{1}{2}\log{\det{(\sigma_1+\sigma_2)}} - \frac{1}{2}
+	(\mu_1-\mu_2)^T(\sigma_1+\sigma_2)^{-1}(\mu_1-\mu_2)-\frac{d}{2}\log{2\pi}
+\end{equation}
+\begin{equation}
+ 	\frac{\partial{\log{E(f,g)}}}{\partial{\mu_1}} = 
+ 	-\frac{\partial{\log{E(f,g)}}}{\partial{\mu_2}} = 
+ 	-\Delta
+\end{equation}
+\begin{equation}
+	\frac{\partial{\log{E(f,g)}}}{\partial{\sigma_1}} = 
+	\frac{\partial{\log{E(f,g)}}}{\partial{\sigma_2}} =
+	\frac{1}{2}(\Delta\Delta^T-(\sigma_1+\sigma_2)^{-1})
+\end{equation}
+\begin{equation}
+	\Delta = (\sigma_1+\sigma_2)^{-1}(\mu_1-\mu_2)
+\end{equation}
+****************************************************
+\end{document}
