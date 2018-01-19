@@ -1,10 +1,11 @@
 #include <Vocabulary.h>
 #include <FileReader.h>
-using namespace redbud;
 #include <iostream>
-using namespace std;
+using namespace redbud;
 
-Vocabulary::Vocabulary(const char* file):fileReader_(new FileReader(file))
+Vocabulary::Vocabulary(const char* file,long long unsigned threashold):
+			fileReader_(new FileReader(file)),
+			threashold_(threashold)
 {
 }
 void Vocabulary::insert(const string& word)
@@ -25,13 +26,13 @@ void Vocabulary::insert(const string& word)
 }
 void Vocabulary::print() const
 {
-    for(int i =0; i < vocab_.size(); ++i)
+    for(size_t i =0; i < vocab_.size(); ++i)
     {
-        cout<< vocab_[i].word_ << " "<< vocab_[i].cnt_ << endl;
+        std::cout<< vocab_[i].word_ << " "<< vocab_[i].cnt_ << std::endl;
     }
     for(auto s:table_)
     {
-        cout << s.first << " " << s.second << endl;
+        std::cout << s.first << " " << s.second << std::endl;
     }
 }
 void Vocabulary::build()
@@ -47,4 +48,34 @@ void Vocabulary::build()
         insert(string(buf));
     }
 
+}
+void Vocabulary::filter()
+{
+	EntryVector    newVocab;
+	HashTable      newTable;
+	for(size_t i = 0; i < vocab_.size(); ++i)
+	{
+	    VocabularyEntry entry = vocab_[i];
+	    if(entry.cnt_ >= threashold_)
+	    {
+			newTable[entry.word_] = newVocab.size();
+			newVocab.push_back(entry);
+	  		frequency_.push_back(entry.cnt_);
+		}
+	}
+	vocab_ = std::move(newVocab);
+	table_ = std::move(newTable);
+}
+size_t Vocabulary::findWord(const string& word)
+{
+	return table_[word];
+}
+void Vocabulary::init()
+{
+	build();
+	filter();
+}
+vector<long long unsigned> Vocabulary::getFrequency() const
+{
+	return frequency_;
 }
